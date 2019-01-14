@@ -1,0 +1,12 @@
+name: Kaggle_Survey_Results
+title: Kaggle_Survey_Results
+username:
+account: sherrypha
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 639685
+bundleId: 1813008
+url: https://sherrypha.shinyapps.io/Kaggle_Survey_Results/
+when: 1547462307.33163
+asMultiple: FALSE
+asStatic: FALSE

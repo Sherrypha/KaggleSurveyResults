@@ -1,0 +1,279 @@
+---
+title: "Untitled"
+author: "Sherifat A-Shitu"
+date: "1 January 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(geojsonio)
+ library(sp)
+library(tidyr)
+library(tidyverse)
+library(plotly)
+```
+
+#Overview
+
+In 2018, Kaggle conducted an industry-wide survey that presents a truly comprehensive view of the state of data science and machine learning. The survey was live for one week in October, and after cleaning the data we finished with 23,859 responses,
+
+This survey received 23,859 usable respondents from 147 countries and territories. If a country or territory received less than 50 respondents, we grouped them into a group named "Other" for anonymity.
+
+```{r getdata, cache=TRUE}
+##get Kaggle data in a tibble
+ks_data<-tbl_df(read.csv("data/multipleChoiceResponses.csv"))
+
+summary(ks_data)
+head(ks_data)
+
+rel_ks_data<-select(ks_data,Q1,Q3,Q12_MULTIPLE_CHOICE,Q13_Part_1:Q13_Part_15,Q14_Part_1:Q14_Part_11,Q15_Part_1:Q15_Part_7,Q16_Part_1:Q16_Part_18,Q17,Q18,Q19_Part_1:Q19_Part_19,Q20,Q21_Part_1:Q21_Part_13,Q22, Q27_Part_1:Q27_Part_20, Q28_Part_1:Q28_Part_43, Q29_Part_1:Q29_Part_28, Q30_Part_1:Q30_Part_25,Q31_Part_1:Q31_Part_12, Q37)
+
+#set column names to first row values
+colnames(rel_ks_data) <- rel_ks_data%>%
+                            slice( 1) %>%
+                              unlist(., use.names=FALSE)
+
+nrow( filter(rel_ks_data, Q13_Part_1=="Jupyter/IPython"))
+
+rel_ks_data %>% 
+  rename("Gender" = !!names(.[1]),
+            "Country" = !!names(.[2]))%>%
+  rowid_to_column("ID")%>%
+    gather(key=question,value = response,-ID,-Gender,-Country)%>%
+  dcast( ID+Gender+Country ~ question)
+
+#get and clean country data
+country_data<-data.frame(table(ks_data$Q3))
+colnames(country_data)<-c("Country","Num Of Response")
+country_data$Country<-as.character(country_data$Country)
+country_data$Country[59]<-"Vietnam"
+country_data$Country[57]<-"United Kingdom"
+country_data$Country[44]<-"North Korea"
+country_data$Country[25]<-"Iran"
+country_data$Country[25]<-"Hong Kong S.A.R."
+```
+
+```{r reports,cache=TRUE}
+
+#num of countrires
+nlevels(ks_data$Q3)
+levels(ks_data$Q3)
+
+#Age distribution
+age<-ks_data%>%count(Q2, sort = TRUE)%>%mutate(freq = (n / sum(n))*100)
+round(age[1,]$freq,0)
+
+#num responses
+nrow(ks_data)-1
+
+#gender dist
+gender<-ks_data%>%count(Q1, sort = TRUE)%>%mutate(freq = (n / sum(n))*100)
+
+#top 5 countries
+t5c<-ks_data%>%
+  count(Q3, sort = TRUE)%>%
+  mutate(freq = (n / sum(n))*100)%>%
+  filter(Q3!="Other")%>%
+  slice(1:5)%>%arrange(n)
+
+#no axes
+ax <- list(
+  title = "",
+  zeroline = FALSE,
+  showline = FALSE,
+  showticklabels = FALSE,
+  showgrid = FALSE
+)
+#pie chart
+plot_ly(t5c, values= c(t5c$n), labels = ~reorder(c(as.character(t5c$Q3)),c(t5c$n)),
+        type = 'pie',textposition = 'inside',
+        textinfo = 'label+percent+value',
+        insidetextfont = list(color = 'purple'),
+        hoverinfo = 'text',
+        text = ~format(t5c$n, big.mark = ","),
+        marker = list(colors = blues9 ,
+                      line = list(color = 'lightblue', width = 1)),
+        showlegend = FALSE) %>%
+  layout(width=350, height=350,
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+#bar chart
+plot_ly(t5c, x = c(t5c$n), y = reorder(c(as.character(t5c$Q3)),c(t5c$n)),
+            type = 'bar', orientation = 'h' , 
+            marker = list(color = 'rgba(38, 24, 74, 0.8)',
+                          line = list(color = 'rgba(122, 120, 168, 1.0)', width = 1))) %>%
+      layout(yaxis = list(showgrid = FALSE, showline = FALSE, showticklabels = TRUE, domain= c(0, 0.85)),
+             xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
+      add_annotations(xref = 'x1', yref = 'y',
+                      x = t5c$n /2 ,  y = reorder(c(as.character(t5c$Q3)),c(t5c$n)),
+                      text = paste("<b>",as.character(t5c$Q3),"\n",formatC(t5c$n, big.mark = ","),"</b>"),
+                      font = list(family = 'Arial', size = 10, color="white" ),
+                      showarrow = FALSE)%>%
+      layout(barmode = 'stack',width = 250, height = 350,
+             xaxis = ax,
+             yaxis = ax)
+
+
+ggplot(t5c, aes(x=Q3, y=n)) +
+  geom_bar(stat='identity') +
+  coord_flip()
+
+c(t5c$n)
+
+
+##programming language usage
+
+selected=c("Nigeria","Belgium")
+pl_usage<- ks_data%>%
+            filter(Q3!= c("I do not wish to disclose my location" ,"In which country do you currently reside?"),
+                   Q3==selected )%>%
+            select(Q16_Part_1:Q16_Part_18)%>%
+            gather(x, value, Q16_Part_1:Q16_Part_18)%>%
+            group_by(x)%>%
+            tally(value !="")%>%
+              mutate(id=gsub("Q16_Part_", "", x))
+            
+
+summary(pl_usage)
+
+
+
+plang<-c("1"= "Python",
+			   "2"="R",
+			   "3"="SQL",
+			   "4"="Bash",
+			   "5"= "Java",
+			   "6"="JavaScript/Typescript",
+			   "7"="Visual Basic/VBA",
+			   "8"="C/C++",
+			   "9"="MATLAB",
+			   "10"="Scala",
+         "11"="Julia",
+         "12"="Go",
+         "13"="C#/.NET",
+         "14"="PHP",
+         "15"="Ruby",
+         "16"="SAS/STATA",
+			   "17"="None",
+			   "18"="Other"
+)
+pl_usage$id<-recode_factor(pl_usage$id, !!!plang)
+pl_usage$id<-as.character(pl_usage$id)
+pl_usage$id[15]="Javascript/Typescript"
+pl_usage$id<-as.factor(pl_usage$id)
+
+ks_data%>%
+  filter(Q3!= c("I do not wish to disclose my location" ,"In which country do you currently reside?"),
+         Q17!=c("","What specific programming language do you use most often? - Selected Choice"))%>%
+  group_by(Q17)%>%
+  summarize(count = n())%>% rename(id=Q17)%>%
+  slice(2:18)
+
+
+
+plang_data <-full_join(pl_usage, ks_data%>%
+          filter(Q3!= c("I do not wish to disclose my location" ,"In which country do you currently reside?"),
+                    Q3==selected,
+                 Q17!=c("","What specific programming language do you use most often? - Selected Choice"))%>%
+          group_by(Q17)%>%
+          summarize(count = n())%>%dplyr::rename(id=Q17)%>%
+          slice(2:18),by=tolower("id"))%>%replace_na(list(count = 0))
+
+
+full_join(pl_usage, ks_data%>%
+            filter(Q3!= c("I do not wish to disclose my location" ,"In which country do you currently reside?"),
+                            Q3==selected,
+                  Q17!=c("","What specific programming language do you use most often? - Selected Choice"))%>%
+            group_by(Q17)%>%
+            summarize(count = n())%>% rename(id=Q17)%>%
+            slice(2:18),by=tolower("id"))%>%replace_na(list(count = 0))
+
+p1 <- plot_ly(plang_data,x = ~n, y = ~reorder(id, n), 
+              name = 'What programming languages do you use on a regular basis?',
+              type = 'bar', orientation = 'h',
+              marker = list(color = 'white',
+                            line = list(color = 'rgba(50, 171, 96, 1.0)', width = 1))) %>%
+  layout(yaxis = list(showgrid = FALSE, showline = FALSE, showticklabels = TRUE, domain= c(0, 0.85)),
+         xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
+  add_annotations(xref = 'x1', yref = 'y',
+                  x = ~n/3,  y = ~id,
+                  text = ~formatC(plang_data$n, big.mark ="," ),
+                  font = list(family = 'Arial', size = 12, color = 'rgb(50, 171, 96)'),
+                  showarrow = FALSE)
+
+p2 <- plot_ly(plang_data,x = ~count, y = ~reorder(id, n), 
+              name = 'What specific programming language do you use most often?',
+              type = 'bar', orientation = 'h',
+              marker = list(color = 'white',
+                            line = list(color = 'rgba(128, 0, 128, 1.0)', width = 1))) %>%
+ layout(yaxis = list(showgrid = FALSE, showline = FALSE, showticklabels = FALSE, domain= c(0, 0.85)),
+         xaxis = list(zeroline = FALSE, showline = FALSE, showticklabels = TRUE, showgrid = TRUE)) %>%
+  add_annotations(xref = 'x1', yref = 'y',
+                  x = ~count/3,  y = ~id,
+                  text = ~formatC(plang_data$count, big.mark ="," ),
+                  font = list(family = 'Arial', size = 12, color = 'rgb(128,0,128)'),
+                  showarrow = FALSE)
+
+
+subplot(p1, p2) %>%
+  layout(title = 'Most popular ML/DS Programming Language',
+         legend = list(x = 0.029, y = 1.038,
+                       font = list(size = 10)),
+         margin = list(l = 100, r = 20, t = 70, b = 70),
+         paper_bgcolor = 'rgb(248, 248, 255)',
+         plot_bgcolor = 'rgb(248, 248, 255)') %>%
+  add_annotations(xref = 'paper', yref = 'paper',
+                  x = -0.14, y = -0.15,
+                  text = paste('Data Source: https://www.kaggle.com/kaggle/kaggle-survey-2018#multipleChoiceResponses.csv'),
+                  font = list(family = 'Arial', size = 10, color = 'rgb(150,150,150)'),
+                  showarrow = FALSE)
+
+
+
+```
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+library(maps);library(leaflet);library(rgdal)
+#use geojsonio or rgdal (packages) to read GeoJSON country data as sp objects.
+#data source: https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson
+
+countries <- geojsonio::geojson_read("./data/countries.geojson",  what = "sp")
+#add num_of_responses per country from country_data to 'countries' sp object
+countries@data = data.frame(countries@data, country_data[match(countries@data[,"ADMIN"], country_data[,"Country"]),])
+
+#remove NA Values
+countries_complete<-sp.na.omit(countries, col.name = "Num.Of.Response") 
+countries@data <-countries@data[complete.cases(countries@data),] 
+
+##create col pallete
+pal<- colorNumeric("Blues", country_data$`Num Of Response`, n = 4)
+
+
+leaflet(countries_complete) %>%
+  addTiles() %>%
+  addPolygons(stroke = FALSE, smoothFactor = 0.3, fillOpacity = 1,
+    fillColor = ~pal(Num.Of.Response),
+    label = ~paste0(Country, ": ", formatC(Num.Of.Response, big.mark = ","))) %>%
+  addLegend(pal = pal, values = ~Num.Of.Response, opacity = 1.0 )
+
+
+leaflet() %>% setView(lng = -98.583, lat = 39.833, zoom = 2) %>%
+  addTiles() %>%
+  addTopoJSON(topoData, weight = 1, color = "#444444", fillColor = pal(country_data$`Num Of Response`))
+
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
