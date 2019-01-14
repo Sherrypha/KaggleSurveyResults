@@ -9,39 +9,82 @@ Overview
 
 The Shiny Application & Reproducible Pitch required: 
 
-1. A shiny application with associated supporting documentation deployed on Rstudio's shiny server.
+- A shiny application with associated supporting documentation deployed on Rstudio's shiny server.
   The application must include the following:
   
   - Some form of input (widget: textbox, radio button, checkbox, ...)
   - Some operation on the ui input in sever.R
   - Some reactive output displayed as a result of server calculations
 
-2. A Reproducible Pitch Presentation created using Slidify or Rstudio Presenter with an html5 slide deck. The presentation should have 5 slides and
+Overview
+========================================================
+
+The Shiny Application & Reproducible Pitch required: 
+
+- A Reproducible Pitch Presentation created using Slidify or Rstudio Presenter with an html5 slide deck. The presentation should have 5 slides and
 
   - It must be done in Slidify or Rstudio Presenter
-  - It must be 5 pages and It must be hosted on github or Rpubs
+  - It must be 5 pages 
+  - It must be hosted on github or Rpubs
   - It must contained some embedded R code that gets run when slidifying the document
 
 
-Kaggle Survey Result
+Kaggle Survey Result Shiny App
 ========================================================
+
+In 2018, Kaggle conducted an industry-wide survey that presented a comprehensive view of the state of data science and machine learning. The survey was live for one week in October, and after cleaning the data we finished with 23,859 responses
+
+This application analyses the response data to identify popularity of the different programing languages in Machine learning/Data science space.
+
+- The Shiny application is hosted here: [Click here for Shiny App](https://sherrypha.shinyapps.io/Kaggle_Survey_Results/)
+- The application files(ui.R, server.R) are here: [Click here for application files on github]("https://github.com/Sherrypha/KaggleSurveyResults/tree/master/Kaggle_Survey_Results")
+- Presentation file: [Click here for presentation file](https://github.com/Sherrypha/KaggleSurveyResults/)
+
+
+Kaggle Survey Result Shiny App - The Data
+========================================================
+
+The Data used for this analysis was sourced from here : [Click here for Data Source](https://www.kaggle.com/kaggle/kaggle-survey-2018#multipleChoiceResponses.csv)
+
+
+
 
 
 ```r
-summary(cars)
+##List of countries
+knitr::kable(head(table(ks_data$Q3)))
 ```
 
-```
-     speed           dist       
- Min.   : 4.0   Min.   :  2.00  
- 1st Qu.:12.0   1st Qu.: 26.00  
- Median :15.0   Median : 36.00  
- Mean   :15.4   Mean   : 42.98  
- 3rd Qu.:19.0   3rd Qu.: 56.00  
- Max.   :25.0   Max.   :120.00  
-```
 
-Slide With Plot
+
+|Var1       | Freq|
+|:----------|----:|
+|Argentina  |  119|
+|Australia  |  330|
+|Austria    |   62|
+|Bangladesh |  107|
+|Belarus    |   91|
+|Belgium    |  111|
+
+
+Kaggle Survey Result Shiny App - The Data
 ========================================================
 
-![plot of chunk unnamed-chunk-2](ShinyAppPitch-figure/unnamed-chunk-2-1.png)
+
+
+```r
+##Gender distribution
+knitr::kable((table(ks_data$Q1)))
+```
+
+
+
+|Var1                                   |  Freq|
+|:--------------------------------------|-----:|
+|Female                                 |  4010|
+|Male                                   | 19430|
+|Prefer not to say                      |   340|
+|Prefer to self-describe                |    79|
+|What is your gender? - Selected Choice |     1|
+
+The App also used geo json countries data from here: [Click here for geoJson Data](https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson)

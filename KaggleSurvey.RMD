@@ -23,7 +23,7 @@ This survey received 23,859 usable respondents from 147 countries and territorie
 
 ```{r getdata, cache=TRUE}
 ##get Kaggle data in a tibble
-ks_data<-tbl_df(read.csv("data/multipleChoiceResponses.csv"))
+ks_data<-tbl_df(read.csv("Data/multipleChoiceResponses.csv"))
 
 summary(ks_data)
 head(ks_data)
